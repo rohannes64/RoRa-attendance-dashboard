@@ -181,3 +181,40 @@ A unified administrative console (`components/admin/AdminDashboard.tsx`) with 3 
 
 ### Q5: How is user privacy handled?
 > **Answer**: Video frames are processed entirely client-side using WebGL GPU shaders and never leave browser memory. Only one-way mathematical embeddings (128 floating-point numbers) are stored, from which original face images cannot be reconstructed.
+
+---
+
+## 7. MERN Stack Architecture & Developer Instructions for Future AI Models
+
+### 7.1 MERN Stack Dual-App Architecture
+The repository contains both a Next.js application and a full MERN Stack architecture:
+- **Express Backend (`backend/`)**: Node.js REST server listening on Port 5000 with zero-setup database seeding (`backend/src/config/db.js`) supporting MongoDB and in-memory providers.
+- **Vite React Frontend (`frontend/`)**: React 19 Single Page Application client built with Vite and Tailwind CSS.
+
+### 7.2 Commands & Setup Reference
+- **Run Express Backend**:
+  ```powershell
+  cd backend
+  npm run dev
+  ```
+- **Run Vite Frontend SPA**:
+  ```powershell
+  cd frontend
+  npm run dev
+  ```
+- **Build Verification**:
+  ```powershell
+  cd frontend; npm run build
+  npm run build # Next.js root build
+  ```
+
+### 7.3 Git Branch & Repository Push Directive
+- **Repository Remote**: `https://github.com/rohannes64/RoRa-attendance-dashboard.git`
+- **Default Branch**: `main`
+- **Push Command**:
+  ```powershell
+  git branch -M main
+  git push -u origin main
+  ```
+  *(Always allow `git branch -M main` execution to push updates to the remote origin).*
+
