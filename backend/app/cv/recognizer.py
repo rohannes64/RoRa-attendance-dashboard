@@ -25,55 +25,86 @@ class FaceRecognizer:
 
     def identify_face(self, target_embedding: np.ndarray, enrolled_students: list) -> dict:
         """
-        Compares target face embedding against a list of enrolled student records.
-        Each student dict in enrolled_students should have: {'student_id', 'name', 'embedding'}
+        Single face identity comparison fallback.
         """
-        if not enrolled_students or target_embedding is None:
-            return {
+        res = self.identify_multiple_faces([target_embedding], enrolled_students)
+        return res[0] if res else {
+            'student_id': None,
+            'name': 'UNKNOWN',
+            'confidence': 0.0,
+            'is_known': False,
+            'status': 'UNKNOWN'
+        }
+
+    def identify_multiple_faces(self, target_embeddings: list, enrolled_students: list) -> list:
+        """
+        Global Bipartite / Greedy Match for multiple faces in a single frame.
+        Guarantees ONE-TO-ONE matching: a single enrolled student can NEVER be 
+        assigned to more than one face in the same video frame.
+        """
+        num_faces = len(target_embeddings)
+        num_students = len(enrolled_students)
+
+        results = [
+            {
                 'student_id': None,
                 'name': 'UNKNOWN',
                 'confidence': 0.0,
+                'similarity_score': 0.0,
                 'is_known': False,
                 'status': 'UNKNOWN'
             }
+            for _ in range(num_faces)
+        ]
 
-        best_match = None
-        best_similarity = -1.0
+        if num_faces == 0 or num_students == 0:
+            return results
 
-        for student in enrolled_students:
-            enrolled_emb = student.get('embedding')
-            if not enrolled_emb:
+        # Build similarity pair list: (similarity, face_idx, student_idx)
+        pairs = []
+        for f_idx, emb in enumerate(target_embeddings):
+            if emb is None:
+                continue
+            for s_idx, student in enumerate(enrolled_students):
+                enrolled_emb = student.get('embedding')
+                if not enrolled_emb:
+                    continue
+                sim = self.calculate_similarity(emb, enrolled_emb)
+                pairs.append((sim, f_idx, s_idx))
+
+        # Sort pairs by similarity descending
+        pairs.sort(key=lambda x: x[0], reverse=True)
+
+        assigned_faces = set()
+        assigned_students = set()
+
+        for sim, f_idx, s_idx in pairs:
+            if f_idx in assigned_faces or s_idx in assigned_students:
                 continue
 
-            similarity = self.calculate_similarity(target_embedding, enrolled_emb)
-            if similarity > best_similarity:
-                best_similarity = similarity
-                best_match = student
+            student = enrolled_students[s_idx]
 
-        if best_match and best_similarity >= self.similarity_threshold:
-            return {
-                'student_id': best_match['student_id'],
-                'name': best_match['name'],
-                'confidence': round(best_similarity * 100, 1),
-                'similarity_score': best_similarity,
-                'is_known': True,
-                'status': 'RECOGNIZED'
-            }
-        elif best_match and best_similarity >= self.uncertain_threshold:
-            return {
-                'student_id': best_match['student_id'],
-                'name': f"Uncertain ({best_match['name']})",
-                'confidence': round(best_similarity * 100, 1),
-                'similarity_score': best_similarity,
-                'is_known': False,
-                'status': 'UNCERTAIN'
-            }
-        else:
-            return {
-                'student_id': None,
-                'name': 'UNKNOWN',
-                'confidence': round(max(0.0, best_similarity) * 100, 1) if best_similarity > 0 else 0.0,
-                'similarity_score': max(0.0, best_similarity),
-                'is_known': False,
-                'status': 'UNKNOWN'
-            }
+            if sim >= self.similarity_threshold:
+                results[f_idx] = {
+                    'student_id': student['student_id'],
+                    'name': student['name'],
+                    'confidence': round(sim * 100, 1),
+                    'similarity_score': sim,
+                    'is_known': True,
+                    'status': 'RECOGNIZED'
+                }
+                assigned_faces.add(f_idx)
+                assigned_students.add(s_idx)
+            elif sim >= self.uncertain_threshold:
+                # Mark as uncertain but don't lock identity exclusively unless high confidence
+                results[f_idx] = {
+                    'student_id': None,
+                    'name': 'UNKNOWN',
+                    'confidence': round(sim * 100, 1),
+                    'similarity_score': sim,
+                    'is_known': False,
+                    'status': 'UNCERTAIN'
+                }
+                assigned_faces.add(f_idx)
+
+        return results

@@ -58,11 +58,9 @@ def process_frame(payload: FrameRequest, db: Session = Depends(get_db)):
     if img is None:
         return FrameResponse(faces=[])
 
-    # Fetch active classroom session if available
     active_session = db.query(ClassroomSession).filter(ClassroomSession.status == "ACTIVE").first()
     active_session_id = active_session.id if active_session else None
 
-    # Load enrolled students from DB
     db_students = db.query(Student).all()
     enrolled_data = [
         {
@@ -74,13 +72,16 @@ def process_frame(payload: FrameRequest, db: Session = Depends(get_db)):
     ]
 
     raw_detections = detector.detect_faces(img)
+    target_embeddings = [extractor.extract_embedding(det['crop']) for det in raw_detections]
+
+    # Batch global matching guaranteeing 1-to-1 unique identity assignment per frame
+    id_results = recognizer.identify_multiple_faces(target_embeddings, enrolled_data)
+
     processed_faces = []
     new_events = []
 
-    for det in raw_detections:
-        crop = det['crop']
-        target_emb = extractor.extract_embedding(crop)
-        id_result = recognizer.identify_face(target_emb, enrolled_data)
+    for idx, det in enumerate(raw_detections):
+        id_result = id_results[idx]
 
         face_res = {
             'box': list(det['box']),
@@ -95,7 +96,6 @@ def process_frame(payload: FrameRequest, db: Session = Depends(get_db)):
         # Auto-record attendance for recognized students during active session
         if active_session_id and id_result['is_known'] and id_result['student_id']:
             student_id = id_result['student_id']
-            # Duplicate prevention check
             existing = db.query(Attendance).filter(
                 Attendance.session_id == active_session_id,
                 Attendance.student_id == student_id
@@ -124,7 +124,6 @@ def process_frame(payload: FrameRequest, db: Session = Depends(get_db)):
 
         processed_faces.append(face_res)
 
-    # Smooth tracking across frames
     tracked_faces = tracker.update(processed_faces)
 
     results = [
