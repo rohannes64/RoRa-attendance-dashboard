@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Check, Plus, Trash2, UserPlus, RefreshCw } from 'lucide-react';
+import { Camera, Check, Plus, Trash2, UserPlus, RefreshCw, FlipHorizontal } from 'lucide-react';
 import { StudentService } from '../services/api';
 
 export default function Enrollment() {
@@ -12,18 +12,23 @@ export default function Enrollment() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // Camera Flipping States
+  const [isMirrored, setIsMirrored] = useState(true);
+  const [facingMode, setFacingMode] = useState('user');
+
   const captureSteps = ['Front View', 'Slightly Left', 'Slightly Right'];
 
   useEffect(() => {
     fetchStudents();
-    startCamera();
+    startCamera(facingMode);
 
     return () => stopCamera();
-  }, []);
+  }, [facingMode]);
 
-  const startCamera = async () => {
+  const startCamera = async (mode) => {
+    stopCamera();
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: mode } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -38,6 +43,14 @@ export default function Enrollment() {
     }
   };
 
+  const toggleMirrorMode = () => {
+    setIsMirrored((prev) => !prev);
+  };
+
+  const toggleFacingMode = () => {
+    setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
+  };
+
   const fetchStudents = async () => {
     try {
       const res = await StudentService.getStudents();
@@ -49,11 +62,18 @@ export default function Enrollment() {
 
   const handleCaptureFrame = () => {
     if (!videoRef.current) return;
+    const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth || 640;
-    canvas.height = videoRef.current.videoHeight || 480;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    
+    if (isMirrored) {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const b64 = canvas.toDataURL('image/jpeg', 0.9);
 
     setCapturedFrames((prev) => [...prev, b64]);
@@ -124,7 +144,6 @@ export default function Enrollment() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '1.5rem' }}>
-        {/* Left: Enrollment Form & Multi-Angle Capture Wizard */}
         <div className="glass-card">
           <h3 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <UserPlus size={20} color="var(--accent-indigo)" />
@@ -158,14 +177,44 @@ export default function Enrollment() {
               </div>
             </div>
 
-            {/* Camera Viewport */}
             <div style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
-              <label className="form-label">
-                Face Capture Wizard ({capturedFrames.length} / 3 Captures)
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="form-label">
+                  Face Capture Wizard ({capturedFrames.length} / 3 Captures)
+                </label>
+                
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                    onClick={toggleMirrorMode}
+                  >
+                    <FlipHorizontal size={14} />
+                    {isMirrored ? 'Mirrored' : 'Normal'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                    onClick={toggleFacingMode}
+                  >
+                    <RefreshCw size={14} />
+                    {facingMode === 'user' ? 'Front' : 'Back'}
+                  </button>
+                </div>
+              </div>
               
               <div className="camera-container" style={{ aspectRatio: '16/9', maxHeight: '280px', marginTop: '0.5rem' }}>
-                <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="camera-video"
+                  style={{ transform: isMirrored ? 'scaleX(-1)' : 'none' }}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
@@ -188,7 +237,6 @@ export default function Enrollment() {
               </div>
             </div>
 
-            {/* Thumbnail previews */}
             {capturedFrames.length > 0 && (
               <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
                 {capturedFrames.map((img, idx) => (
@@ -206,7 +254,6 @@ export default function Enrollment() {
           </form>
         </div>
 
-        {/* Right: Enrolled Students List */}
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1.25rem' }}>
             Enrolled Students ({enrolledStudents.length})

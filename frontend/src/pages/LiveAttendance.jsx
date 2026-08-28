@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, CheckCircle2, AlertTriangle, Play, Square, Download, UserCheck, ShieldAlert } from 'lucide-react';
+import { Camera, CheckCircle2, AlertTriangle, Play, Square, Download, UserCheck, ShieldAlert, FlipHorizontal, RefreshCw } from 'lucide-react';
 import { SessionService, RecognitionService, AttendanceService } from '../services/api';
 
 export default function LiveAttendance({ onNavigateToSessions }) {
@@ -11,8 +11,16 @@ export default function LiveAttendance({ onNavigateToSessions }) {
   const [recentlyRecognized, setRecentlyRecognized] = useState([]);
   const [unknownDetected, setUnknownDetected] = useState(false);
   const [notification, setNotification] = useState(null);
+  
+  // Camera Flipping States
+  const [isMirrored, setIsMirrored] = useState(true);
+  const [facingMode, setFacingMode] = useState('user'); // 'user' or 'environment'
 
-  // Fetch current active session
+  const isMirroredRef = useRef(isMirrored);
+  useEffect(() => {
+    isMirroredRef.current = isMirrored;
+  }, [isMirrored]);
+
   const fetchActiveSession = async () => {
     try {
       const res = await SessionService.getActiveSession();
@@ -38,17 +46,18 @@ export default function LiveAttendance({ onNavigateToSessions }) {
 
   useEffect(() => {
     fetchActiveSession();
-    startCamera();
+    startCamera(facingMode);
 
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [facingMode]);
 
-  const startCamera = async () => {
+  const startCamera = async (mode) => {
+    stopCamera();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' }
+        video: { width: 640, height: 480, facingMode: mode }
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -56,7 +65,7 @@ export default function LiveAttendance({ onNavigateToSessions }) {
       }
     } catch (err) {
       console.error('Webcam access error:', err);
-      showToast('Unable to access webcam. Please allow camera permissions.', 'danger');
+      showToast('Unable to access webcam. Please check permissions.', 'danger');
     }
   };
 
@@ -68,18 +77,25 @@ export default function LiveAttendance({ onNavigateToSessions }) {
     }
   };
 
+  const toggleMirrorMode = () => {
+    setIsMirrored((prev) => !prev);
+  };
+
+  const toggleFacingMode = () => {
+    setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
+  };
+
   const showToast = (msg, type = 'success') => {
     setNotification({ msg, type });
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Continuous frame analysis loop
   useEffect(() => {
     let intervalId;
     if (isCameraActive) {
       intervalId = setInterval(async () => {
         captureAndAnalyzeFrame();
-      }, 500); // 2 FPS recognition update loop
+      }, 500);
     }
     return () => clearInterval(intervalId);
   }, [isCameraActive, activeSession]);
@@ -96,11 +112,12 @@ export default function LiveAttendance({ onNavigateToSessions }) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // Draw video frame to offscreen canvas to extract base64 data
     const offscreen = document.createElement('canvas');
     offscreen.width = video.videoWidth;
     offscreen.height = video.videoHeight;
     const offCtx = offscreen.getContext('2d');
+    
+    // Draw frame for backend
     offCtx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
     const base64Image = offscreen.toDataURL('image/jpeg', 0.85);
 
@@ -108,10 +125,9 @@ export default function LiveAttendance({ onNavigateToSessions }) {
       const res = await RecognitionService.processFrame(base64Image);
       const faces = res.data.faces || [];
       
-      // Clear overlay canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       let hasUnknown = false;
+      const mirrored = isMirroredRef.current;
 
       faces.forEach((face) => {
         const [x, y, w, h] = face.box;
@@ -121,14 +137,16 @@ export default function LiveAttendance({ onNavigateToSessions }) {
           hasUnknown = true;
         }
 
+        // Adjust X coordinate if camera video is horizontally mirrored
+        const drawX = mirrored ? (canvas.width - x - w) : x;
+
         // Box styling
         ctx.lineWidth = 3;
         ctx.strokeStyle = isKnown ? '#10b981' : '#f43f5e';
         ctx.shadowColor = isKnown ? '#10b981' : '#f43f5e';
         ctx.shadowBlur = 10;
-        ctx.strokeRect(x, y, w, h);
+        ctx.strokeRect(drawX, y, w, h);
 
-        // Name & Confidence Badge overlay
         const label = isKnown
           ? `${face.name} (${face.confidence}%)`
           : `UNKNOWN (${face.confidence}%)`;
@@ -138,15 +156,14 @@ export default function LiveAttendance({ onNavigateToSessions }) {
 
         ctx.fillStyle = isKnown ? 'rgba(16, 185, 129, 0.9)' : 'rgba(244, 63, 94, 0.9)';
         ctx.shadowBlur = 0;
-        ctx.fillRect(x, Math.max(0, y - 28), textWidth + 16, 26);
+        ctx.fillRect(drawX, Math.max(0, y - 28), textWidth + 16, 26);
 
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(label, x + 8, Math.max(18, y - 9));
+        ctx.fillText(label, drawX + 8, Math.max(18, y - 9));
       });
 
       setUnknownDetected(hasUnknown);
 
-      // Handle new attendance events
       if (res.data.new_attendance_events && res.data.new_attendance_events.length > 0) {
         res.data.new_attendance_events.forEach((ev) => {
           showToast(`✓ Marked Present: ${ev.name} (${ev.confidence}%)`, 'success');
@@ -174,7 +191,6 @@ export default function LiveAttendance({ onNavigateToSessions }) {
 
   return (
     <div>
-      {/* Page Header */}
       <div className="page-header">
         <div>
           <h2 className="page-title">Live Attendance Console</h2>
@@ -205,7 +221,6 @@ export default function LiveAttendance({ onNavigateToSessions }) {
         )}
       </div>
 
-      {/* Toast Notification Banner */}
       {notification && (
         <div
           className={`badge ${
@@ -223,7 +238,6 @@ export default function LiveAttendance({ onNavigateToSessions }) {
         </div>
       )}
 
-      {/* Active Session Summary Banner */}
       {activeSession ? (
         <div className="glass-card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.1))' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -262,26 +276,53 @@ export default function LiveAttendance({ onNavigateToSessions }) {
         </div>
       )}
 
-      {/* Main Content Grid: Camera Viewport + Live Attendance List */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }}>
-        {/* Left: Camera Feed */}
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
             <h4 style={{ fontWeight: '600' }}>Webcam Live Feed</h4>
-            {unknownDetected && (
-              <span className="badge badge-danger">
-                <ShieldAlert size={14} /> UNKNOWN PERSON DETECTED
-              </span>
-            )}
+            
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {unknownDetected && (
+                <span className="badge badge-danger">
+                  <ShieldAlert size={14} /> UNKNOWN PERSON
+                </span>
+              )}
+              
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                onClick={toggleMirrorMode}
+                title="Mirror Horizontal Flip"
+              >
+                <FlipHorizontal size={16} />
+                {isMirrored ? 'Mirrored' : 'Normal'}
+              </button>
+
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                onClick={toggleFacingMode}
+                title="Switch Camera Sensor"
+              >
+                <RefreshCw size={16} />
+                {facingMode === 'user' ? 'Front' : 'Back'}
+              </button>
+            </div>
           </div>
 
           <div className="camera-container">
-            <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="camera-video"
+              style={{ transform: isMirrored ? 'scaleX(-1)' : 'none' }}
+            />
             <canvas ref={canvasRef} className="camera-canvas" />
           </div>
         </div>
 
-        {/* Right: Live Attendance Log Table */}
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h4 style={{ fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <UserCheck size={18} color="var(--accent-green)" />
