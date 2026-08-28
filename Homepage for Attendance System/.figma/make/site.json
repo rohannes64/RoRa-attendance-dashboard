@@ -1,0 +1,10 @@
+{
+  "description": "Streamline attendance tracking with live face detection and enrollment features, designed for educational institutions to enhance classroom management.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-terracotta: #C4622D;
+  --color-amber: #E8943A;
+  --color-cream: #F0E2C8;
+  --color-espresso-dark: #140E07;
+  --color-espresso-mid: #1E1610;
+  --color-espresso-border: #2A1F13;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #140E07;
+  color: #F0E2C8;
+  font-family: 'Outfit', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Keyframe Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseRing {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+@keyframes scanLine {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 2s infinite ease-in-out;
+}
+
+.animate-scan-line {
+  animation: scanLine 2.5s infinite linear;
+}
+
+.card-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(196, 98, 45, 0.5);
+  box-shadow: 0 12px 24px -10px rgba(196, 98, 45, 0.25);
+}

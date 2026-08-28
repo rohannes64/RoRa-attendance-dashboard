@@ -1,0 +1,41 @@
+# dependencies
+/node_modules
+frontend/node_modules
+backend/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+frontend/dist
+
+# misc
+.DS_Store
+*.pem
+*.zip
+figma_export/
+home_export/
+.agent/
+.agents/
+screenshot_turn1.png
+figma_thumbnail.png
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
