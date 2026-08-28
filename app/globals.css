@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-main: #080b11;
+    --bg-surface: #0e131f;
+    --bg-surface-elevated: #141c2c;
+    --bg-surface-subtle: #182236;
+    --border-subtle: #1c273e;
+    --border-strong: #2a3b5c;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-emerald: #10b981;
+    --accent-emerald-subtle: rgba(16, 185, 129, 0.12);
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+}
+
+/* Tabular numbers for clocks, metrics, roll numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080b11;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2a42;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2d3e61;
+}
+
+/* Linear/Vercel-Grade Studio Cards */
+.studio-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+.studio-card-interactive {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+  transition: all 0.15s cubic-bezier(0, 0, 0.2, 1);
+}
+.studio-card-interactive:hover {
+  background-color: #121929;
+  border-color: #2a3c5e;
+  transform: translateY(-1px);
+}
+
+/* Tactile Production Buttons */
+.btn-primary {
+  background: linear-gradient(180deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+  padding: 0.45rem 0.95rem;
+  border: 1px solid #10b981;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  outline: none;
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  border-color: #34d399;
+}
+.btn-primary:active {
+  transform: translateY(1px);
+  background: #047857;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.btn-primary:focus-visible {
+  box-shadow: 0 0 0 2px #080b11, 0 0 0 4px #10b981;
+}
+
+.btn-secondary {
+  background-color: #131b2c;
+  color: #e2e8f0;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+  padding: 0.45rem 0.95rem;
+  border: 1px solid #202d47;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  outline: none;
+}
+.btn-secondary:hover {
+  background-color: #18233a;
+  border-color: #2d3f63;
+  color: #ffffff;
+}
+.btn-secondary:active {
+  transform: translateY(1px);
+}
+.btn-secondary:focus-visible {
+  box-shadow: 0 0 0 2px #080b11, 0 0 0 4px #64748b;
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid transparent;
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  outline: none;
+}
+.btn-ghost:hover {
+  background-color: #141c2e;
+  color: #f1f5f9;
+}
+
+/* Micro Status Chips */
+.chip-present {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.45rem;
+  border-radius: 4px;
+  font-family: var(--font-mono, monospace);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.chip-late {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.45rem;
+  border-radius: 4px;
+  font-family: var(--font-mono, monospace);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.chip-absent {
+  background-color: rgba(244, 63, 94, 0.08);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.45rem;
+  border-radius: 4px;
+  font-family: var(--font-mono, monospace);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Viewfinder crosshairs */
+.viewfinder-crosshair {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: rgba(148, 163, 184, 0.4);
+  pointer-events: none;
+}
